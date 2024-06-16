@@ -411,8 +411,8 @@ def main() -> None:
                     pass
             if len(detections) > 0:
                 if board_moved(current=detection, last=detections[-1][1]):
-                    logger.info("Board moved, saved detection")
                     detections.append((gray, detection))
+                    logger.info("Board moved, saved detection %s" % len(detections))
             else:
                 logger.info("Saved first detection")
                 detections.append((gray, detection))
