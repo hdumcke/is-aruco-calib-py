@@ -3,6 +3,7 @@ import sys
 from typing import Any, List, Optional, Tuple, TypedDict
 
 import cv2
+from picamera2 import Picamera2
 import numpy as np
 import numpy.typing as npt
 from google.protobuf.json_format import MessageToJson
@@ -347,7 +348,9 @@ def main() -> None:
         legacy_pattern=options.intrinsic.legacy_pattern,
     )
     detections: List[Tuple[npt.NDArray[np.uint8], CharucoDetection]] = []
-    if options.uri:
+    # unused
+    # if options.uri:
+    if False:
         channel = Channel(uri=options.uri, exchange="is")
         subscrition = Subscription(channel=channel, name="IntrinsicCalibration")
         subscrition.subscribe(options.topic.format(options.camera_id))
@@ -385,14 +388,27 @@ def main() -> None:
         cv2.destroyAllWindows()
     else:
         logger.info("Using folder={}, and searching for *.png files", options.data_dir)
-        images = cv2.VideoCapture(f"{options.data_dir}/%3d.png")
-        while images.isOpened():
-            ret, frame = images.read()
-            if not ret:
-                logger.warn("Can't read image, skipping...")
-                break
+        picam2 = Picamera2()
+        picam2.configure(picam2.create_preview_configuration(main={"format": 'RGB888', "size": (2028, 1520)}))
+        picam2.start()
+        while len(detections) < options.intrinsic.samples:
+            frame = picam2.capture_array()
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             _, detection = charuco.detect(image=gray)
+            if False:
+                image_copy = draw_detection(image=gray, detection=detection)
+                image_copy = cv2.putText(
+                    img=image_copy,
+                    text=f"{len(detections)}/{options.intrinsic.samples}",
+                    org=(10, 50),
+                    fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                    fontScale=1.25,
+                    color=(0, 255, 0),
+                    thickness=2,
+                )
+                cv2.imshow("Detection", image_copy)
+                if cv2.waitKey(0) == ord("q"):
+                    pass
             if len(detections) > 0:
                 if board_moved(current=detection, last=detections[-1][1]):
                     logger.info("Board moved, saved detection")
@@ -401,7 +417,7 @@ def main() -> None:
                 logger.info("Saved first detection")
                 detections.append((gray, detection))
     if len(detections) >= options.intrinsic.samples:
-        logger.info("Calibrating camera id={}", options.camera_id)
+        logger.info("Calibrating camera")
         calibration = charuco.calibrate_camera(detections=detections)
         calibration.id = options.camera_id
         os.makedirs(options.data_dir)

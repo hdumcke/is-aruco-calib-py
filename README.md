@@ -1,5 +1,7 @@
 # Camera Calibration
 
+**This is a quick hack to make upstream repo to work on a Raspberry Pi using picamera2**
+
 Calibrating a camera using visual markers is a fundamental process in computer vision and AR/VR systems. It involves selecting visual markers, capturing images from different angles, identifying key points, finding point correspondences, estimating intrinsic and extrinsic camera parameters and using the calibrated camera model for tasks like 3D reconstruction and object tracking.
 
 ## *ChArUco*
